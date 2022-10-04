@@ -8,6 +8,14 @@ library(ggplot2)
 library(xts)
 library(reshape2)
 
+########### Setting up details for this script #############
+theme_cust <- function(base_size = 11, base_family = "") {
+  theme_classic() %+replace%
+    theme(
+      panel.border = element_rect(colour = "black", fill = NA, size = 1),
+      axis.text = element_text(color = "black")
+    )
+}
 
 ##### Load data #########
 clear <- read.csv('R_import_data/Clear.csv') %>% 
@@ -75,10 +83,44 @@ all_wind <- dbllake %>%
     select(Datetime,starts_with("EC"))
   
  ############ Calculating Stats ############
-  test_stat <- all_temp %>%
+  daily_mean <- all_temp %>%
     mutate(datetime_daily = cut(Datetime,'day')) %>%
     group_by(datetime_daily) %>%
     summarise_if(is.numeric,mean,na.rm = TRUE)
   
-  stat_plot <- melt(test_stat,datetime_daily,id = 2:13)
+  daily_amp <- all_temp %>%
+    mutate(datetime_daily = cut(Datetime,'day')) %>%
+    group_by(datetime_daily) %>%
+    summarise_if(is.numeric,funs(max, min),na.rm = FALSE)
   
+  stat_plot <- pivot_longer(daily_mean,cols = 2:14,names_to = "names") %>%
+    mutate(type = case_when(
+      str_detect(names,"dblk|kndk|dnsfk|clr|ngrs")~"Non-gl",
+      str_detect(names,"din1|din2|din4|din5|din6|din7|gan2|grs3")~"Glacial"
+    ))
+  
+  
+    ggplot(stat_plot, aes(x=datetime_daily , y= value)) +
+    geom_point(aes(color= factor(type)))+
+    scale_colour_brewer(palette = "Paired")+
+    ylab(expression(paste("Daily Average Temp"))) + 
+    theme_cust()
+    
+  
+    test_stat <- all_EC %>%
+      mutate(datetime_daily = cut(Datetime,'day')) %>%
+      group_by(datetime_daily) %>%
+      summarise_if(is.numeric,mean,na.rm = TRUE)
+    
+    stat_plot <- pivot_longer(test_stat,cols = 2:10,names_to = "names") %>%
+      mutate(type = case_when(
+        str_detect(names,"dblk|kndk|dnsfk|clr|ngrs")~"Non-gl",
+        str_detect(names,"din1|din2|din4|din5|din6|din7|gan2|grs3")~"Glacial"
+      ))
+    
+    
+    ggplot(stat_plot, aes(x=datetime_daily , y= value)) +
+      geom_point(aes(color= factor(type)))+
+      scale_colour_brewer(palette = "Paired")+
+      ylab(expression(paste("Daily Average EC"))) + 
+      theme_cust()
