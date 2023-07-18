@@ -75,6 +75,9 @@ all_wind <- dbllake %>%
   full_join(.,clear, by = 'Datetime',) %>%
   full_join(.,nglgrs, by = 'Datetime',) 
 
+# Writing output to a .CSV 
+readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_timeseries.csv"))
+
 # generating  data frames just for temp and EC
   all_temp <- all_wind %>%
     select(Datetime,starts_with("Temp"))
@@ -111,12 +114,12 @@ all_wind <- dbllake %>%
   }
   
   # Line to run the function for a given parameter and interval 
-  stat_data <- summary_stats(all_temp, 'week')
+  stat_data <- summary_stats(all_EC, 'month')
   
   ############## Plotting statistics ###################
   #not paper quality figures, just to look at the data 
   
-  stat <- 4 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: daily range
+  stat <- 1 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
   stat_plot <- pivot_longer(stat_data[[stat]],cols = 2:ncol(stat_data[[stat]]),names_to = "names") %>%
     mutate(type = case_when(
       str_detect(names,"dblk|kndk|dnsfk|clr|ngrs")~"Non-gl",
@@ -129,3 +132,4 @@ all_wind <- dbllake %>%
     ylab(expression(paste("Daily Average Temp"))) + 
     theme_cust()
     
+    stat_plot <- pivot_wider(stat_data[[stat]],names_from = "names", values_from = datetime_int)
