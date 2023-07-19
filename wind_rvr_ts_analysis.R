@@ -7,6 +7,7 @@ library(dplyr)
 library(ggplot2)
 library(xts)
 library(reshape2)
+library(misty)
 
 ########### Setting up details for this script #############
 theme_cust <- function(base_size = 11, base_family = "") {
@@ -110,26 +111,60 @@ readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_
     int_amp <- add_column(.data= int_amp, datetime_int = int_max$datetime_int, .before = 1)
     
     out <- list(int_mean, int_max, int_min, int_amp)
+    stats <- c("mean", "max", "min", "range")
     return(out)
   }
   
   # Line to run the function for a given parameter and interval 
-  stat_data <- summary_stats(all_EC, 'month')
+  stat_dataEC <- summary_stats(all_EC, 'month')
+  stat_dataT <- summary_stats(all_temp, 'month')
+########## Organizing stats to export for statistical modeling 
   
-  ############## Plotting statistics ###################
-  #not paper quality figures, just to look at the data 
+  stat_saveEC <- data.frame(site = colnames(stat_dataEC[[1]])[2:ncol(stat_dataEC[[1]])])
   
-  stat <- 1 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
-  stat_plot <- pivot_longer(stat_data[[stat]],cols = 2:ncol(stat_data[[stat]]),names_to = "names") %>%
+  for (i in 1:length(stat_dataEC)) {
+  stat <- i #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
+  stat_plot <- pivot_longer(stat_dataEC[[stat]],cols = 2:ncol(stat_dataEC[[stat]]),names_to = "names") %>%
     mutate(type = case_when(
       str_detect(names,"dblk|kndk|dnsfk|clr|ngrs")~"Non-gl",
       str_detect(names,"din1|din2|din4|din5|din6|din7|gan2|grs3")~"Glacial"
     ))
+    
+    col_names <- c("site",paste("jun",stats[i], "EC", sep = "."), paste("jul",stats[i], "EC", sep = "."), paste("aug",stats[i], "EC", sep = "."), paste("sep",stats[i], "EC", sep = "."))
+    
+      temp <- subset(stat_plot, select = -type) %>%
+        pivot_wider(names_from = "datetime_int", values_from = value) %>%
+        df.rename(from = c("names", "2018-06-01", "2018-07-01","2018-08-01", "2018-09-01"), to = col_names)
   
-    ggplot(stat_plot, aes(x=datetime_int , y= value)) +
+      stat_saveEC <- merge(stat_saveEC, temp, by = "site")
+  }
+  
+  # Repeat for temperature
+  stat_saveT <- data.frame(site = colnames(stat_dataT[[1]])[2:ncol(stat_dataT[[1]])])
+  
+  for (i in 1:length(stat_dataT)) {
+    stat <- i #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
+    stat_plot <- pivot_longer(stat_dataT[[stat]],cols = 2:ncol(stat_dataT[[stat]]),names_to = "names") %>%
+      mutate(type = case_when(
+        str_detect(names,"dblk|kndk|dnsfk|clr|ngrs")~"Non-gl",
+        str_detect(names,"din1|din2|din4|din5|din6|din7|gan2|grs3")~"Glacial"
+      ))
+    
+    col_names <- c("site",paste("jun",stats[i], "Temp", sep = "."), paste("jul",stats[i], "Temp", sep = "."), paste("aug",stats[i], "Temp", sep = "."), paste("sep",stats[i], "Temp", sep = "."))
+    
+    temp <- subset(stat_plot, select = -type) %>%
+      pivot_wider(names_from = "datetime_int", values_from = value) %>%
+      df.rename(from = c("names", "2018-06-01", "2018-07-01","2018-08-01", "2018-09-01"), to = col_names)
+    
+    stat_saveT <- merge(stat_saveT, temp, by = "site")
+  }
+  
+  ############## Plotting statistics ###################
+  #not paper quality figures, just to look at the data 
+  ggplot(stat_plot, aes(x=datetime_int , y= value)) +
     geom_point(aes(color= factor(type)))+
     scale_colour_brewer(palette = "Paired")+
     ylab(expression(paste("Daily Average Temp"))) + 
     theme_cust()
-    
-    stat_plot <- pivot_wider(stat_data[[stat]],names_from = "names", values_from = datetime_int)
+  
+  
