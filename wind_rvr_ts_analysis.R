@@ -139,6 +139,10 @@ readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_
       stat_saveEC <- merge(stat_saveEC, temp, by = "site")
   }
   
+  stat_saveEC <- separate(stat_saveEC, col= site, into = c('type',"loc")) %>%
+    subset(select = -type)
+  
+  
   # Repeat for temperature
   stat_saveT <- data.frame(site = colnames(stat_dataT[[1]])[2:ncol(stat_dataT[[1]])])
   
@@ -158,6 +162,11 @@ readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_
     
     stat_saveT <- merge(stat_saveT, temp, by = "site")
   }
+  
+  stat_saveT <- separate(stat_saveT, col= site, into = c('type',"loc")) %>%
+    subset(select = -type)
+  
+  stat_save <- merge(stat_saveT, stat_saveEC, by = "loc", all.x = TRUE)
   
   ############## Plotting statistics ###################
   #not paper quality figures, just to look at the data 
