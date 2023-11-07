@@ -130,7 +130,7 @@ readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_
       str_detect(names,"din1|din2|din4|din5|din6|din7|gan2|grs3")~"Glacial"
     ))
     
-    col_names <- c("site",paste("jun",stats[i], "EC", sep = "."), paste("jul",stats[i], "EC", sep = "."), paste("aug",stats[i], "EC", sep = "."), paste("sep",stats[i], "EC", sep = "."))
+    col_names <- c("site",paste("jun",stats[i], "EC", sep = "_"), paste("jul",stats[i], "EC", sep = "_"), paste("aug",stats[i], "EC", sep = "_"), paste("sep",stats[i], "EC", sep = "_"))
     
       temp <- subset(stat_plot, select = -type) %>%
         pivot_wider(names_from = "datetime_int", values_from = value) %>%
@@ -154,7 +154,7 @@ readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_
         str_detect(names,"din1|din2|din4|din5|din6|din7|gan2|grs3")~"Glacial"
       ))
     
-    col_names <- c("site",paste("jun",stats[i], "Temp", sep = "."), paste("jul",stats[i], "Temp", sep = "."), paste("aug",stats[i], "Temp", sep = "."), paste("sep",stats[i], "Temp", sep = "."))
+    col_names <- c("site",paste("jun",stats[i], "Temp", sep = "_"), paste("jul",stats[i], "Temp", sep = "_"), paste("aug",stats[i], "Temp", sep = "_"), paste("sep",stats[i], "Temp", sep = "_"))
     
     temp <- subset(stat_plot, select = -type) %>%
       pivot_wider(names_from = "datetime_int", values_from = value) %>%
@@ -167,6 +167,8 @@ readr::write_csv(all_wind, file = file.path("outputs", "full_wind_river_EC_TEMP_
     subset(select = -type)
   
   stat_save <- merge(stat_saveT, stat_saveEC, by = "loc", all.x = TRUE)
+  
+  readr::write_csv(stat_save, file = file.path("outputs", "wind_river_ECtemp_monthstat.csv"))
   
   ############## Plotting statistics ###################
   #not paper quality figures, just to look at the data 
