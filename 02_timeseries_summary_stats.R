@@ -1,9 +1,11 @@
 ## 02_timeseries_summary_stats
 # This will load the timeseries datasets and calculate summary statistics based on user specified intervals
 
+rm(list = ls())
+
 source("paths+packages.R")
 
-rm()
+
 
 ##### Load data #########
 all_wind <- read.csv('outputs/01_full_wind_river_EC_TEMP_timeseries.csv')
@@ -28,11 +30,13 @@ summary_stats <- function(dataset,interval) {
     mutate(datetime_int = cut(Datetime,interval)) %>%
     group_by(datetime_int) %>%
     summarise_if(is.numeric,max,na.rm = TRUE)
+  int_max[int_max == -Inf] <- NA
   
   int_min <- dataset %>%    
     mutate(datetime_int = cut(Datetime,interval)) %>%
     group_by(datetime_int) %>%
     summarise_if(is.numeric,min,na.rm = TRUE)
+  int_min[int_min == Inf] <- NA
   
   int_amp <- int_max[2:ncol(int_min)]- int_min[2:ncol(int_min)] 
   int_amp[int_amp == -Inf] <- NA
@@ -105,5 +109,10 @@ readr::write_csv(stat_save, file = file.path("outputs", "02_wind_river_ECtemp_mo
 ggplot(stat_plot, aes(x=datetime_int , y= value)) +
   geom_point(aes(color= factor(type)))+
   scale_colour_brewer(palette = "Paired")+
+  ylab(expression(paste("Daily Average Temp"))) + 
+  theme_cust()
+
+ggplot(all_temp, aes(x=as.POSIXct(Datetime) , y= Temp.dnsfk)) +
+  geom_point()+
   ylab(expression(paste("Daily Average Temp"))) + 
   theme_cust()

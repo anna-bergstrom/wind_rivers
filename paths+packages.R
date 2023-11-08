@@ -12,6 +12,8 @@ library(reshape2)
 library(misty)
 library(dtwclust)
 library(TSclust)
+library(factoextra)
+library(corrplot)
 
 
 

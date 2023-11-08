@@ -7,7 +7,7 @@ rm()
 
 ##### Load data #########
 all_temp <- read.csv('outputs/01_full_wind_river_TEMP_timeseries.csv')
-all_ec <- read.csv('outputs/01_full_wind_river_EC_timeseries.csv')
+all_ec <- read.csv('outputs/01_full_wind_river_Smoothed_timeseries.csv')
 
 all_temp$Datetime <- strptime(all_temp$Datetime, "%Y-%m-%dT%H:%M:%S")
 all_ec$Datetime <- strptime(all_ec$Datetime, "%Y-%m-%dT%H:%M:%S")
@@ -53,7 +53,7 @@ EC_mat_T <- t(EC_mat[,-1])
 temp_mat_T <- t(temp_mat[,-1])
 
 #calculating dissimilarity matrix using TSclust diss() function
-EC_dist <- diss(SERIES=EC_mat_T, METHOD="DTW") #DTW = Dynamic Time Warping
+EC_dist <- diss(SERIES=EC_mat_T, METHOD="EUCL") #DTW = Dynamic Time Warping
 
 #adding informative column names
 names(EC_dist) <- rownames(EC_mat_T)
@@ -69,7 +69,7 @@ fviz_nbclust(EC_mat_T, FUN = hcut, method = "wss")
 fviz_nbclust(EC_mat_T, FUN = hcut, method = "silhouette")
 
 #cut tree to the optimal number of clusters (4?)
-sub_grp <- cutree(EC_hclust, k = 4)
+sub_grp <- cutree(EC_hclust, k = 5)
 
 #binding cluster solutions with the wide dataframe
 #EC_mat_clust <- cbind(EC_mat,sub_grp)
@@ -79,11 +79,11 @@ group1 <- EC_mat[,sub_grp==1]
 
 
 # Trying different type of clustering
-hc_sbd<-tsclust(EC_mat_T,type="h",k=10L, 
+hc_sbd<-tsclust(EC_mat_T,type="h",k=5L, 
                 preproc=zscore,seed=899, distance="sbd",
                 centroid=shape_extraction, control=hierarchical_control(method="complete"))
 plot(hc_sbd)
-plot(hc_sbd,type="sc")
+plot(EC_hclust,type="sc")
 plot(hc_sbd,type="centroids")
 
 
