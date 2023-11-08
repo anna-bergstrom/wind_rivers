@@ -14,6 +14,7 @@ library(dtwclust)
 library(TSclust)
 library(factoextra)
 library(corrplot)
+library(bestglm)
 
 
 
