@@ -54,12 +54,13 @@ temp_mat_T <- t(temp_mat[,-1])
 
 #calculating dissimilarity matrix using TSclust diss() function
 EC_dist <- diss(SERIES=EC_mat_T, METHOD="EUCL") #DTW = Dynamic Time Warping
-
+EC_Dist <- dist(EC_mat_T, method = "euclidean")
 #adding informative column names
 names(EC_dist) <- rownames(EC_mat_T)
 
 #perform hierachical clustering on the diss object
-EC_hclust <- hclust(EC_dist, method="complete")
+EC_hclust <- hclust(EC_dist, method="ward.D")
+
 
 #show the resulting dendrogram
 plot(EC_hclust, main="EC Clustering")
@@ -69,25 +70,14 @@ fviz_nbclust(EC_mat_T, FUN = hcut, method = "wss")
 fviz_nbclust(EC_mat_T, FUN = hcut, method = "silhouette")
 
 #cut tree to the optimal number of clusters (4?)
-sub_grp <- cutree(EC_hclust, k = 5)
+sub_grp <- cutree(EC_hclust, k = 3)
 
-#binding cluster solutions with the wide dataframe
-#EC_mat_clust <- cbind(EC_mat,sub_grp)
+#Calculating stats for clustering
+cluster.stats(EC_Dist, sub_grp)
 
-EC_mat <- EC_mat[,-1]
-group1 <- EC_mat[,sub_grp==1]
+#EC_classed <- cbind(sub_grp, EC_mat_T)
 
+TEST <- melt(t(EC_mat[, sub_grp == 1]))
 
-# Trying different type of clustering
-hc_sbd<-tsclust(EC_mat_T,type="h",k=5L, 
-                preproc=zscore,seed=899, distance="sbd",
-                centroid=shape_extraction, control=hierarchical_control(method="complete"))
-plot(hc_sbd)
-plot(EC_hclust,type="sc")
-plot(hc_sbd,type="centroids")
-
-
-require("cluster") 
-hc_sbd<-tsclust(temp_mat_T,type="h",k=8L, 
-                distance="dtw_basic", control=hierarchical_control(method=diana), 
-                args=tsclust_args(dist=list(window.size=18L)))
+ggplot(melt(t(EC_mat[, sub_grp == 1]))) +
+  geom_line(aes(x = Var2,y = value,color = Var1),size = 1) 
