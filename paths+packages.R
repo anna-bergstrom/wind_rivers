@@ -15,6 +15,7 @@ library(TSclust)
 library(factoextra)
 library(corrplot)
 library(bestglm)
+library(plyr)
 
 
 

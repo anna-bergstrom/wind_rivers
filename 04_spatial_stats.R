@@ -6,14 +6,17 @@ source("paths+packages.R")
 
 ### Load Data####
 all_wind <- read.csv('outputs/02_wind_river_ECtemp_monthstat.csv') #monthly temperature and EC stats
+colnames(all_wind)[1]<-"site" 
+all_wind <- all_wind[order(all_wind$site),]
 LC_stat <- read.csv('sample_stats.csv') #attributes of the sampling sites 
 colnames(LC_stat) <- c('site','elev', 'w_slope', 's_slope', 'aspect','area','gl', 'lk', 'frst', 'ice', 'bare', 'shrb', 'grs', 'gnis','gran', 'gl_dep', 'dist')
+LC_stat <- LC_stat[order(LC_stat$site),]
   
 # Evaluating how correlated Temp and EC data are
 full_cor <- cor(all_wind[,-1], use="complete.obs") # use argument deals with the NAs 
 corrplot.mixed(full_cor, lower = 'number', upper = 'circle', order = 'AOE')
 
-# Starting with pulling out only the monthly mean temp and EC data 
+# Starting with pulling out only the monthly mean and range temp and EC data 
 means_stats <- select(all_wind,contains("mean"))
 mean_cor <- cor(means_stats, use="complete.obs")
 corrplot.mixed(mean_cor, lower = 'number', upper = 'circle', order = 'AOE')
@@ -51,7 +54,7 @@ LC_sub_scaled <- scaling(LC_subset1[,-1])
 
 
 # Combining scaled means and spatial data and calculating a correlation matrix 
-spat_cor <- cor(cbind(LC_scaled ,means_scaled), use="complete.obs")
+spat_cor <- cor(cbind(LC_scaled, means_scaled), use="complete.obs")
 corrplot.mixed(spat_cor, lower = 'number', upper = 'circle')
 
 # Combining scaled range and spatial data and calculating a correlation matrix 
@@ -91,13 +94,12 @@ readr::write_csv(as.data.frame(range_cor_table), file = file.path("outputs", "04
 readr::write_csv(as.data.frame(mean_cor_table), file = file.path("outputs", "04_wind_river_mean_cor_table.csv"),na = "")
 
 ##Plotting spatial variables against monthly means for a visual evaluation
-# Jun Temp
 
-df<- cbind(LC_stat [,-1], means_stats[,1])
-names(df) [length(df)]<- "sep_temp_mean"
-juntemp_long <- reshape2::melt(df, id.vars = "sep_temp_mean")
+df<- cbind(LC_stat [,-1], range_stats[,8])
+names(df) [length(df)]<- "sep_EC_range"
+juntemp_long <- reshape2::melt(df, id.vars = "sep_EC_range")
 
-ggplot(juntemp_long, aes(sep_temp_mean, value, colour = variable)) +
+ggplot(juntemp_long, aes(sep_EC_range, value, colour = variable)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
   facet_wrap(vars(variable), scales = "free_y")
@@ -134,3 +136,25 @@ colnames(glm_range_table)<-c('param', 'Jun_temp', 'Jul_temp', 'Aug_temp', 'Sep_t
 
 readr::write_csv(as.data.frame(glm_range_table), file = file.path("outputs", "04_wind_river_range_glm_table.csv"),na = "")
 readr::write_csv(as.data.frame(glm_mean_table), file = file.path("outputs", "04_wind_river_mean_glm_table.csv"),na = "")
+
+# Comparing temp range to other temp stats 
+df<- all_wind[,2:17] #2:17 = temp, 18:33 = EC 
+
+temp_long<- reshape2::melt(df)
+
+temp_chr<- str_split_fixed(temp_long$variable, "_", 3)
+temp_long <- as.data.frame(cbind(temp_long[,2], temp_chr [,1:2]))
+colnames(temp_long)<- c('temp', 'month', 'stat')
+temp_long$temp <- as.numeric(temp_long$temp)
+id <- rep(seq(1,length(all_wind[,1]),1), length(temp_long$temp)/length(all_wind[,1]))
+temp_long<- cbind(temp_long,id)
+
+arranged <- dcast(temp_long, month+id~ stat ,value.var = "temp")
+
+ggplot(arranged, aes(range, mean, colour = month)) +
+  geom_point() 
+
+  
+#Pulling out just dinwoody
+test = filter(all_wind, grepl("din", loc))
+
