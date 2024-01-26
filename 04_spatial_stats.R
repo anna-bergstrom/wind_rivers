@@ -9,27 +9,44 @@ all_wind <- read.csv('outputs/02_wind_river_ECtemp_monthstat.csv') #monthly temp
 colnames(all_wind)[1]<-"site" 
 all_wind <- all_wind[order(all_wind$site),]
 LC_stat <- read.csv('sample_stats.csv') #attributes of the sampling sites 
-colnames(LC_stat) <- c('site','elev', 'dist', 'w_slope', 's_slope', 'aspect','area','gl', 'lk', 'frst', 'rk_gl','ice', 'bare', 'shrb', 'grs', 'gnis','gran', 'gl_dep')
+colnames(LC_stat) <- c('site','elev', 'dist', 'w_slope', 's_slope', 'aspect','area','gl', 'lk', 'frst', 'rk_gl','ice', 'bare', 'shrb', 'grs', 'gnis','gran', 'gl_dep', 'rugg_whole', 'rugg_100','rugg_50','rugg_25')
 LC_stat <- LC_stat[order(LC_stat$site),]
   
+
 
 # Starting with pulling out only the monthly mean and range temp and EC data 
 means_stats <- select(all_wind,contains("mean"))
 range_stats <- select(all_wind,contains("range"))
 # Combining means and ranges  and spatial data and calculating a correlation matrix 
-mean_cor <- cor(cbind(LC_stat[,-1],means_stats), use="complete.obs")
+mean_cor <- cor(cbind(LC_stat[,-1],means_stats), use="complete.obs", method = "spearman")
 corrplot(mean_cor,  type = 'lower', diag = FALSE)
 
-range_cor <- cor(cbind(LC_stat[,-1],range_stats), use="complete.obs")
+range_cor <- cor(cbind(LC_stat[,-1],range_stats), use="complete.obs", method = "spearman")
 corrplot(range_cor, type = 'lower', diag = FALSE)
 
+#Determining highly correlated spatial variables
+spatial_cor <- cor(LC_stat[,-1])
+spatial_cor_sort<- as.data.frame(as.table(spatial_cor)) # making a table of the correlation matrix 
+spatial_cor_sort<-spatial_cor_sort[order(abs(spatial_cor_sort[,3])),]
+spatial_cor_sort<-spatial_cor_sort[!duplicated(spatial_cor_sort[,3]),]
 
 #Sorting spatial correlations for parameter pruning
+#function to create a correlation matrix for a given stat and sort it  
+stat_cor <- function(stat){
+spat_cor<- cor(cbind(LC_stat[,-1], select(all_wind,contains(!!stat))), use="complete.obs", method = "spearman")
 spat_cor_sort<- as.data.frame(as.table(spat_cor)) # making a table of the correlation matrix 
 spat_cor_sort<-spat_cor_sort[order(abs(spat_cor_sort[,3])),] # sorting based on the correlation coefficient
 opts<- c("Temp" , "EC") #taking out duplicates (next 3 lines)
 spat_cor_sort = filter(spat_cor_sort, grepl(paste(opts, collapse = "|"), Var1))
 spat_cor_sort = filter(spat_cor_sort, !grepl(paste(opts, collapse = "|"), Var2))
+return(spat_cor_sort)
+}
+
+EC_mean_cor <- stat_cor("mean_EC")
+EC_range_cor <- stat_cor("range_EC")
+
+temp_mean_cor <- stat_cor("mean_Temp")
+temp_range_cor <- stat_cor("range_Temp")
 
 # Removing highly correlated spatial variables and recalculating the correlation matrix
 LC_subset1 <- subset(LC_stat, select = c(site, elev,s_slope, gnis, lk, gran, frst))
@@ -168,16 +185,22 @@ colnames(din_long)<- c('dist', 'value','month', 'stat','param')
 dinplot <- function(input,meas,desc){
   subbed <- input %>%
     filter(param == !!meas & stat == !!desc)
+  cols <- c("#edf8fb" = "jun","#b3cde3" = "jul","#8c96c6"= "aug","#88419d"= "sep")
   
   stat_plot <- ggplot(data = subbed)+
-    geom_point(aes(x = dist, y = value, colour = month))+
-    theme_cust()
+    geom_point(aes(x = dist, y = value, colour = factor(month) ),size=5)+
+    scale_fill_manual(values = cols)+
+    ylab(paste(meas, desc))+
+    xlab("Distance from source")+
+    theme_cust()+
+    theme(axis.text = element_text(size = 14))+
+    theme(axis.title = element_text(size = 14)) 
   
 print(stat_plot)   
 }
 
-test <- dinplot(din_long, "EC", "max")
-test <- dinplot(din_long, "Temp", "max")
+test <- dinplot(din_long, "EC", "range")
+test <- dinplot(din_long, "Temp", "mean")
 
 
 
