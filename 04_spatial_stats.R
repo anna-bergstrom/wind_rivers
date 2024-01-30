@@ -12,19 +12,15 @@ LC_stat <- read.csv('sample_stats.csv') #attributes of the sampling sites
 colnames(LC_stat) <- c('site','elev', 'dist', 'w_slope', 's_slope', 'aspect','area','gl', 'lk', 'frst', 'rk_gl','ice', 'bare', 'shrb', 'grs', 'gnis','gran', 'gl_dep', 'rugg_whole', 'rugg_100','rugg_50','rugg_25')
 LC_stat <- LC_stat[order(LC_stat$site),]
   
-
-
 # Starting with pulling out only the monthly mean and range temp and EC data 
 means_stats <- select(all_wind,contains("mean"))
 range_stats <- select(all_wind,contains("range"))
 # Combining means and ranges  and spatial data and calculating a correlation matrix 
-mean_cor <- cor(cbind(LC_stat[,-1],means_stats), use="complete.obs", method = "spearman")
-corrplot(mean_cor,  type = 'lower', diag = FALSE)
+all_cor <- cor(cbind(LC_stat[,-1],means_stats, range_stats), use="complete.obs", method = "spearman")
+corrplot(all_cor,  type = 'lower', diag = FALSE)
 
-range_cor <- cor(cbind(LC_stat[,-1],range_stats), use="complete.obs", method = "spearman")
-corrplot(range_cor, type = 'lower', diag = FALSE)
 
-#Determining highly correlated spatial variables
+########### Determining highly correlated spatial variables ##########
 spatial_cor <- cor(LC_stat[,-1])
 spatial_cor_sort<- as.data.frame(as.table(spatial_cor)) # making a table of the correlation matrix 
 spatial_cor_sort<-spatial_cor_sort[order(abs(spatial_cor_sort[,3])),]
@@ -42,20 +38,21 @@ spat_cor_sort = filter(spat_cor_sort, !grepl(paste(opts, collapse = "|"), Var2))
 return(spat_cor_sort)
 }
 
+#applying function to each stat
 EC_mean_cor <- stat_cor("mean_EC")
 EC_range_cor <- stat_cor("range_EC")
 
 temp_mean_cor <- stat_cor("mean_Temp")
 temp_range_cor <- stat_cor("range_Temp")
 
-# Removing highly correlated spatial variables and recalculating the correlation matrix
-LC_subset1 <- subset(LC_stat, select = c(site, elev,s_slope, gnis, lk, gran, frst))
-LC_subset2 <- subset(LC_stat, select = -c(w_slope, gl, frst, bare, shrb))
-spat_cor_sub <- cor(LC_subset1[,2:length(LC_subset1)], use="complete.obs")
-corrplot.mixed(spat_cor_sub, lower = 'number', upper = 'circle', order = 'AOE')
+# Sub-setting based on sorted correlations and removing highly correlated predictor variables 
+EC_mean_subset <- subset(LC_stat, select = c(site, aspect, s_slope, gnis, area))
+EC_range_subset <- subset(LC_stat, select = c(site, gran, rugg_100, bare, elev))
+Temp_mean_subset <- subset(LC_stat, select = c(site, elev, w_slope, gran, area))
+Temp_range_subset <- subset(LC_stat, select = c(site, dist, gnis, aspect, ice))
 
 
-# Normalizing data 
+########## Normalizing data ##########
 scaling <- function(data){
 for (i in 1:length(data)){
 data[,i] <- scale(data[,i] , center = min(data[,i], na.rm = TRUE ), scale = max(data[,i] , na.rm = TRUE) - min(data[,i], na.rm = TRUE))
@@ -63,21 +60,69 @@ data[,i] <- scale(data[,i] , center = min(data[,i], na.rm = TRUE ), scale = max(
 return(data)
 }
 
-means_scaled <- scaling(means_stats)
-range_scaled <- scaling(range_stats)
-LC_scaled <- scaling(LC_stat[,-1])
-LC_sub_scaled <- scaling(LC_subset1[,-1])
+EC_mean_sub_scaled <- scaling(EC_mean_subset[,-1])
+EC_range_sub_scaled <- scaling(EC_range_subset[,-1])
+Temp_mean_sub_scaled <- scaling(Temp_mean_subset[,-1])
+Temp_range_sub_scaled <- scaling(Temp_range_subset[,-1])
+means_stats_scaled <- scaling(means_stats)
+range_stats <- scaling(range_stats)
 
+########## testing for the best general linear model ########## 
+#see McManus et al., 2020 Freshwater Science https://doi.org/10.1086/710340
 
-# Combining scaled means and spatial data and calculating a correlation matrix 
-spat_cor <- cor(cbind(LC_scaled, means_scaled), use="complete.obs")
-corrplot(spat_cor, order = 'FPC', type = 'lower', diag = FALSE)
+# function for setting up table for output
+table_setup <- function(input){
+glm_table <- as.data.frame(colnames(input))
+colnames(glm_table)<-'param'
+param <- as.data.frame('(Intercept)')
+colnames(param)<-'param'
+glm_table <- bind_rows(param, glm_table )
+return(glm_table)
+}
 
-# Combining scaled range and spatial data and calculating a correlation matrix 
-spat_cor <- cor(cbind(LC_scaled, range_scaled), use="complete.obs")
-corrplot(spat_cor, order = 'FPC', type = 'lower', diag = FALSE)
+# applying function for each 
+EC_mean_glm <- table_setup(EC_mean_sub_scaled)
+EC_range_glm <- table_setup(EC_range_sub_scaled)
 
-# Calculating a series of Spearman rank correlations and making a table
+Temp_mean_glm <- table_setup(Temp_mean_sub_scaled)
+Temp_range_glm <- table_setup(Temp_range_sub_scaled)
+
+param <- "mean_EC"
+# function to calculate the GLM  
+glm_apply <- function(stat_table, subset_spat,  param){
+stats_sub <-  select(all_wind,contains(!!param)) 
+for(j in 1:(length(stats_sub))){
+temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),],stats_sub[!is.na(stats_sub[,j]),j]), IC = "AIC")
+print(temp)
+params <- as.data.frame(temp$BestModel$coefficients)
+params$param<-rownames(params)
+colnames(params)<-c('val','param')
+stat_table<- merge(stat_table,params, by = 'param', all.x = TRUE)
+}
+colnames(stat_table)<-c('param', 'Jun', 'Jul', 'Aug', 'Sep')
+return(stat_table)
+}
+
+EC_mean_glm <- glm_apply(EC_mean_glm, EC_mean_sub_scaled, "mean_EC")
+EC_range_glm <- glm_apply(EC_range_glm, EC_range_sub_scaled, "range_EC")
+
+Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_mean_sub_scaled, "mean_Temp")
+Temp_range_glm <- glm_apply(Temp_range_glm, Temp_range_sub_scaled, "range_Temp")
+
+for(j in 1:(length(range_stats))){
+  temp <- bestglm(cbind(LC_sub_scaled[!is.na(range_stats[,j]),],range_stats[!is.na(range_stats[,j]),j]), IC = "AIC")
+  print(temp)
+  params <- as.data.frame(temp$BestModel$coefficients)
+  params$param<-rownames(params)
+  colnames(params)<-c('val','param')
+  glm_range_table<- merge(glm_range_table,params, by = 'param', all.x = TRUE)
+}
+colnames(glm_range_table)<-c('param', 'Jun_temp', 'Jul_temp', 'Aug_temp', 'Sep_temp', 'Jun_EC','Jul_EC','Aug_EC','Sep_EC' )
+
+readr::write_csv(as.data.frame(glm_range_table), file = file.path("outputs", "04_wind_river_range_glm_table.csv"),na = "")
+readr::write_csv(as.data.frame(glm_mean_table), file = file.path("outputs", "04_wind_river_mean_glm_table.csv"),na = "")
+
+######## Calculating a series of Spearman rank correlations and making a table ##########
 spear_table <- matrix(data=NA,nrow=length(LC_stat)-1,ncol=3)
 spear <- function(spat, stat){
   for (k in 1:length(spat)) {
@@ -94,66 +139,22 @@ mean_cor_table <- colnames(LC_stat[2:length(LC_stat)])
 
 
 for (j in 1:length(range_scaled)){
-temp <- spear(LC_scaled, range_scaled[,j])
-ind <- temp[,3]>0.1
-temp[ind,2:3] <-NA
-range_cor_table <- cbind(range_cor_table,temp[,2:3])
-
-
-temp <- spear(LC_scaled, means_scaled[,j])
-ind <- temp[,3]>0.05
-temp[ind,2:3] <-NA
-mean_cor_table <- cbind(mean_cor_table,temp[,2:3])
+  temp <- spear(LC_scaled, range_scaled[,j])
+  ind <- temp[,3]>0.1
+  temp[ind,2:3] <-NA
+  range_cor_table <- cbind(range_cor_table,temp[,2:3])
+  
+  
+  temp <- spear(LC_scaled, means_scaled[,j])
+  ind <- temp[,3]>0.05
+  temp[ind,2:3] <-NA
+  mean_cor_table <- cbind(mean_cor_table,temp[,2:3])
 }
 
 readr::write_csv(as.data.frame(range_cor_table), file = file.path("outputs", "04_wind_river_range_cor_table.csv"),na = "")
 readr::write_csv(as.data.frame(mean_cor_table), file = file.path("outputs", "04_wind_river_mean_cor_table.csv"),na = "")
 
-##Plotting spatial variables against monthly means for a visual evaluation
-
-df<- cbind(LC_stat [,-1], means_stats[,8])
-names(df) [length(df)]<- "sep_EC_mean"
-juntemp_long <- reshape2::melt(df, id.vars = "sep_EC_mean")
-
-ggplot(juntemp_long, aes(sep_EC_mean, value, colour = variable)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(vars(variable), scales = "free_y")
-
-
-# testing for the best general linear model 
-#see McManus et al., 2020 Freshwater Science https://doi.org/10.1086/710340
-glm_mean_table <- as.data.frame(colnames(LC_sub_scaled))
-colnames(glm_mean_table)<-'param'
-param <- as.data.frame('(Intercept)')
-colnames(param)<-'param'
-glm_mean_table <- bind_rows(param, glm_mean_table )
-glm_range_table <- glm_mean_table
-
-for(j in 1:(length(means_stats))){
-temp <- bestglm(cbind(LC_sub_scaled[!is.na(means_stats[,j]),],means_stats[!is.na(means_stats[,j]),j]), IC = "AIC")
-print(temp)
-params <- as.data.frame(temp$BestModel$coefficients)
-params$param<-rownames(params)
-colnames(params)<-c('val','param')
-glm_mean_table<- merge(glm_mean_table,params, by = 'param', all.x = TRUE)
-}
-colnames(glm_mean_table)<-c('param', 'Jun_temp', 'Jul_temp', 'Aug_temp', 'Sep_temp', 'Jun_EC','Jul_EC','Aug_EC','Sep_EC'  )
-
-for(j in 1:(length(range_stats))){
-  temp <- bestglm(cbind(LC_sub_scaled[!is.na(range_stats[,j]),],range_stats[!is.na(range_stats[,j]),j]), IC = "AIC")
-  print(temp)
-  params <- as.data.frame(temp$BestModel$coefficients)
-  params$param<-rownames(params)
-  colnames(params)<-c('val','param')
-  glm_range_table<- merge(glm_range_table,params, by = 'param', all.x = TRUE)
-}
-colnames(glm_range_table)<-c('param', 'Jun_temp', 'Jul_temp', 'Aug_temp', 'Sep_temp', 'Jun_EC','Jul_EC','Aug_EC','Sep_EC' )
-
-readr::write_csv(as.data.frame(glm_range_table), file = file.path("outputs", "04_wind_river_range_glm_table.csv"),na = "")
-readr::write_csv(as.data.frame(glm_mean_table), file = file.path("outputs", "04_wind_river_mean_glm_table.csv"),na = "")
-
-# Comparing temp range to other temp stats 
+########## Comparing temp range to other temp stats ########## 
 df<- all_wind[,18:33] #2:17 = temp, 18:33 = EC 
 
 temp_long<- reshape2::melt(df)
@@ -167,11 +168,30 @@ temp_long<- cbind(temp_long,id)
 
 arranged <- dcast(temp_long, month+id~ stat ,value.var = "temp")
 
-ggplot(arranged, aes(range, mean, colour = month)) +
-  geom_point() 
+#cols <- c("jun"= "#bae4bc" ,"jul"= "#7bccc4" ,"aug"="#43a2ca", "sep" = "#0868ac" )
+cols <- c("jun"= "#b3cde3" ,"jul"= "#8c96c6" ,"aug"="#8856a7", "sep" = "#810f7c" )
 
+ggplot(arranged, aes(x = range, y = min, colour = factor(month))) +
+  geom_point( size = 5)+
+  scale_colour_manual(values = cols)+
+  ylab("Min EC")+
+  xlab("EC Range")+
+  theme_cust()+
+  theme(axis.text = element_text(size = 14))+
+  theme(axis.title = element_text(size = 14)) 
+
+######### Plotting spatial variables against monthly means for a visual evaluation ##########
+
+df<- cbind(LC_stat [,-1], means_stats[,8])
+names(df) [length(df)]<- "sep_EC_mean"
+juntemp_long <- reshape2::melt(df, id.vars = "sep_EC_mean")
+
+ggplot(juntemp_long, aes(sep_EC_mean, value, colour = variable)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(vars(variable), scales = "free_y")
   
-#Pulling out just Dinwoody
+########## Pulling out just Dinwoody ##########
 dinwood_stat = filter(all_wind, grepl("din", site))
 dinwood_spat = filter(LC_stat, grepl("din", site))
 
@@ -185,11 +205,11 @@ colnames(din_long)<- c('dist', 'value','month', 'stat','param')
 dinplot <- function(input,meas,desc){
   subbed <- input %>%
     filter(param == !!meas & stat == !!desc)
-  cols <- c("#edf8fb" = "jun","#b3cde3" = "jul","#8c96c6"= "aug","#88419d"= "sep")
-  
+  cols <- c("jun"= "#bae4bc" ,"jul"= "#7bccc4" ,"aug"="#43a2ca", "sep" = "#0868ac" )
+  #cols <- c("jun"= "#b3cde3" ,"jul"= "#8c96c6" ,"aug"="#8856a7", "sep" = "#810f7c" )
   stat_plot <- ggplot(data = subbed)+
     geom_point(aes(x = dist, y = value, colour = factor(month) ),size=5)+
-    scale_fill_manual(values = cols)+
+    scale_colour_manual(values = cols)+
     ylab(paste(meas, desc))+
     xlab("Distance from source")+
     theme_cust()+
@@ -200,7 +220,9 @@ print(stat_plot)
 }
 
 test <- dinplot(din_long, "EC", "range")
+test <- dinplot(din_long, "EC", "mean")
 test <- dinplot(din_long, "Temp", "mean")
+test <- dinplot(din_long, "Temp", "range")
 
 
 
