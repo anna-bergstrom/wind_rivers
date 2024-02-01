@@ -109,18 +109,12 @@ EC_range_glm <- glm_apply(EC_range_glm, EC_range_sub_scaled, "range_EC")
 Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_mean_sub_scaled, "mean_Temp")
 Temp_range_glm <- glm_apply(Temp_range_glm, Temp_range_sub_scaled, "range_Temp")
 
-for(j in 1:(length(range_stats))){
-  temp <- bestglm(cbind(LC_sub_scaled[!is.na(range_stats[,j]),],range_stats[!is.na(range_stats[,j]),j]), IC = "AIC")
-  print(temp)
-  params <- as.data.frame(temp$BestModel$coefficients)
-  params$param<-rownames(params)
-  colnames(params)<-c('val','param')
-  glm_range_table<- merge(glm_range_table,params, by = 'param', all.x = TRUE)
-}
-colnames(glm_range_table)<-c('param', 'Jun_temp', 'Jul_temp', 'Aug_temp', 'Sep_temp', 'Jun_EC','Jul_EC','Aug_EC','Sep_EC' )
 
-readr::write_csv(as.data.frame(glm_range_table), file = file.path("outputs", "04_wind_river_range_glm_table.csv"),na = "")
-readr::write_csv(as.data.frame(glm_mean_table), file = file.path("outputs", "04_wind_river_mean_glm_table.csv"),na = "")
+readr::write_csv(as.data.frame(EC_mean_glm), file = file.path("outputs", "04_wind_river_EC_mean_glm.csv"),na = "")
+readr::write_csv(as.data.frame(EC_range_glm), file = file.path("outputs", "04_wind_river_EC_range_glm.csv"),na = "")
+
+readr::write_csv(as.data.frame(Temp_mean_glm), file = file.path("outputs", "04_wind_river_Temp_mean_glm.csv"),na = "")
+readr::write_csv(as.data.frame(Temp_range_glm), file = file.path("outputs", "04_wind_river_Temp_range_glm.csv"),na = "")
 
 ######## Calculating a series of Spearman rank correlations and making a table ##########
 spear_table <- matrix(data=NA,nrow=length(LC_stat)-1,ncol=3)
