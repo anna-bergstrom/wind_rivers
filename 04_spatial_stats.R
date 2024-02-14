@@ -9,7 +9,7 @@ all_wind <- read.csv('outputs/02_wind_river_ECtemp_monthstat.csv') #monthly temp
 colnames(all_wind)[1]<-"site" 
 all_wind <- all_wind[order(all_wind$site),]
 LC_stat <- read.csv('sample_stats.csv') #attributes of the sampling sites 
-colnames(LC_stat) <- c('site','elev', 'dist', 'w_slope', 's_slope', 'aspect','area','gl', 'lk', 'frst', 'rk_gl','ice', 'bare', 'shrb', 'grs', 'gnis','gran', 'gl_dep', 'rugg_whole', 'rugg_100','rugg_50','rugg_25')
+colnames(LC_stat) <- c('site','elev', 'dist', 'w_slope', 's_slope', 'aspect','area','rk_gl', 'lk','gl','bare', 'frst',  'shrb', 'grs', 'gnis','gran', 'gl_dep', 'rugg_whole', 'rugg_100','rugg_50','rugg_25','slr_rad')
 LC_stat <- LC_stat[order(LC_stat$site),]
   
 # Starting with pulling out only the monthly mean and range temp and EC data 
@@ -46,10 +46,11 @@ temp_mean_cor <- stat_cor("mean_Temp")
 temp_range_cor <- stat_cor("range_Temp")
 
 # Sub-setting based on sorted correlations and removing highly correlated predictor variables 
-EC_mean_subset <- subset(LC_stat, select = c(site, aspect, s_slope, gnis, area))
-EC_range_subset <- subset(LC_stat, select = c(site, gran, rugg_100, bare, elev))
-Temp_mean_subset <- subset(LC_stat, select = c(site, elev, w_slope, gran, area))
-Temp_range_subset <- subset(LC_stat, select = c(site, dist, gnis, aspect, ice))
+# changing to subset a consistent dataset for EC based on hypothesized mechanisms
+EC_subset <- subset(LC_stat, select = c(site, aspect, gran, gnis, gl, rugg_25))
+#EC_range_subset <- subset(LC_stat, select = c(site, gran, rugg_100, bare, elev))
+Temp_subset <- subset(LC_stat, select = c(site, aspect, gran, gnis, gl, rugg_whole, dist, slr_rad))
+#Temp_range_subset <- subset(LC_stat, select = c(site, dist, gnis, aspect, ice))
 
 
 ########## Normalizing data ##########
@@ -60,12 +61,12 @@ data[,i] <- scale(data[,i] , center = min(data[,i], na.rm = TRUE ), scale = max(
 return(data)
 }
 
-EC_mean_sub_scaled <- scaling(EC_mean_subset[,-1])
-EC_range_sub_scaled <- scaling(EC_range_subset[,-1])
-Temp_mean_sub_scaled <- scaling(Temp_mean_subset[,-1])
-Temp_range_sub_scaled <- scaling(Temp_range_subset[,-1])
+EC_sub_scaled <- scaling(EC_subset[,-1])
+#EC_range_sub_scaled <- scaling(EC_range_subset[,-1])
+Temp_sub_scaled <- scaling(Temp_subset[,-1])
+#Temp_range_sub_scaled <- scaling(Temp_range_subset[,-1])
 means_stats_scaled <- scaling(means_stats)
-range_stats <- scaling(range_stats)
+range_stats_scaled <- scaling(range_stats)
 
 ########## testing for the best general linear model ########## 
 #see McManus et al., 2020 Freshwater Science https://doi.org/10.1086/710340
@@ -81,13 +82,15 @@ return(glm_table)
 }
 
 # applying function for each 
-EC_mean_glm <- table_setup(EC_mean_sub_scaled)
-EC_range_glm <- table_setup(EC_range_sub_scaled)
+EC_mean_glm <- table_setup(EC_sub_scaled)
+EC_range_glm <- table_setup(EC_sub_scaled)
 
-Temp_mean_glm <- table_setup(Temp_mean_sub_scaled)
-Temp_range_glm <- table_setup(Temp_range_sub_scaled)
+Temp_mean_glm <- table_setup(Temp_sub_scaled)
+Temp_range_glm <- table_setup(Temp_sub_scaled)
 
 param <- "mean_EC"
+subset_spat <- EC_sub_scaled
+stat_table <- EC_mean_glm
 # function to calculate the GLM  
 glm_apply <- function(stat_table, subset_spat,  param){
 stats_sub <-  select(all_wind,contains(!!param)) 
@@ -103,11 +106,11 @@ colnames(stat_table)<-c('param', 'Jun', 'Jul', 'Aug', 'Sep')
 return(stat_table)
 }
 
-EC_mean_glm <- glm_apply(EC_mean_glm, EC_mean_sub_scaled, "mean_EC")
-EC_range_glm <- glm_apply(EC_range_glm, EC_range_sub_scaled, "range_EC")
+EC_mean_glm <- glm_apply(EC_mean_glm, EC_sub_scaled, "mean_EC")
+EC_range_glm <- glm_apply(EC_range_glm, EC_sub_scaled, "range_EC")
 
-Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_mean_sub_scaled, "mean_Temp")
-Temp_range_glm <- glm_apply(Temp_range_glm, Temp_range_sub_scaled, "range_Temp")
+Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_sub_scaled, "mean_Temp")
+Temp_range_glm <- glm_apply(Temp_range_glm, Temp_sub_scaled, "range_Temp")
 
 
 readr::write_csv(as.data.frame(EC_mean_glm), file = file.path("outputs", "04_wind_river_EC_mean_glm.csv"),na = "")
