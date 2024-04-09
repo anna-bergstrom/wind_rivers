@@ -13,7 +13,7 @@ ec_sm <-  read.csv('outputs/01_full_wind_river_Smoothed_timeseries.csv')
 
 all_temp$Datetime <- strptime(all_temp$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
 all_ec$Datetime <- strptime(all_ec$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
-ec_sm$Datetime <- strptime(all_ec$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
+ec_sm$Datetime <- strptime(ec_sm$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
 
 # Renaming columns so they display better in the legend
 colnames(all_temp) <- c("Datetime","double lake", "dinwoody 1", "dinwoody 2", "dinwoody 4", "dinwoody 5", "dinwoody 6", "dinwoody 7", "klondike","downs fork", "ganett 2","grass 3", "clear", "grass")
@@ -63,7 +63,22 @@ ggplot(temp_flip, aes(Datetime, value, colour = variable)) +
  ########### EC Plots #############
  # Plot with all EC time series in the same plot 
 
-  
+ # Plot with all temperature time series in the same plot 
+ ggplot(sm_flip, aes(Datetime, value, colour = variable)) +
+   geom_line() +
+   ylab(bquote('Temp (\u00B0C)'))+
+   scale_color_manual(values=ec_ramp)+
+   theme_cust()
+ 
+ #faceted plot with temperature time series in individual panels 
+ ggplot(sm_flip, aes(Datetime, value, colour = variable)) +
+   geom_line() +
+   ylab(bquote('Temp (\u00B0C)'))+
+   xlab("")+
+   scale_color_manual(values=ec_ramp)+
+   facet_wrap(~factor(variable, levels = c("Sm.dnsfk", "Sm.kndk", "Sm.din7",  "Sm.din6", "Sm.din5",  "Sm.din4", "Sm.din2", "Sm.din1", "Sm.gan2" )))+
+   theme_cust()+
+   theme( strip.text.x = element_blank() )
  
  #00876c 1
  #3d9c73 2
@@ -79,4 +94,6 @@ ggplot(temp_flip, aes(Datetime, value, colour = variable)) +
  #e4604e 12
  #d43d51 13
  
- ec_names <- colnames(ec_sm)
+ #ec_names <- colnames(ec_sm)
+ 
+ 
