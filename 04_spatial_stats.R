@@ -47,9 +47,9 @@ temp_range_cor <- stat_cor("range_Temp")
 
 # Sub-setting based on sorted correlations and removing highly correlated predictor variables 
 # changing to subset a consistent dataset for EC based on hypothesized mechanisms
-EC_subset <- subset(LC_stat, select = c(site, aspect, gran, gnis, gl, rugg_25))
+EC_subset <- subset(LC_stat, select = c(site, gran, gnis, gl, rugg_25, slr_rad))
 #EC_range_subset <- subset(LC_stat, select = c(site, gran, rugg_100, bare, elev))
-Temp_subset <- subset(LC_stat, select = c(site, aspect, gran, gnis, gl, rugg_whole, dist, slr_rad))
+Temp_subset <- subset(LC_stat, select = c(site, gran, gnis,lk, gl, rugg_whole, dist, slr_rad))
 #Temp_range_subset <- subset(LC_stat, select = c(site, dist, gnis, aspect, ice))
 
 
@@ -95,7 +95,7 @@ stat_table <- EC_mean_glm
 glm_apply <- function(stat_table, subset_spat,  param){
 stats_sub <-  select(all_wind,contains(!!param)) 
 for(j in 1:(length(stats_sub))){
-temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),],stats_sub[!is.na(stats_sub[,j]),j]), IC = "AIC")
+temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),],stats_sub[!is.na(stats_sub[,j]),j]), IC = "BIC")
 print(temp)
 params <- as.data.frame(temp$BestModel$coefficients)
 params$param<-rownames(params)

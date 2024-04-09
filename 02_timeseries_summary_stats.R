@@ -67,7 +67,7 @@ for (i in 1:length(stat_dataEC)) {
   
   temp <- subset(stat_plot, select = -type) %>%
     pivot_wider(names_from = "datetime_int", values_from = value) %>%
-    df.rename(from = c("names", "2018-06-01", "2018-07-01","2018-08-01", "2018-09-01"), to = col_names)
+    rename_at(vars(), ~col_names)
   
   stat_saveEC <- merge(stat_saveEC, temp, by = "site")
 }
@@ -91,7 +91,8 @@ for (i in 1:length(stat_dataT)) {
   
   temp <- subset(stat_plot, select = -type) %>%
     pivot_wider(names_from = "datetime_int", values_from = value) %>%
-    df.rename(from = c("names", "2018-06-01", "2018-07-01","2018-08-01", "2018-09-01"), to = col_names)
+    rename_at(vars(), ~col_names)
+    #rename(from = c("names", "2018-06-01", "2018-07-01","2018-08-01", "2018-09-01"), to = col_names)
   
   stat_saveT <- merge(stat_saveT, temp, by = "site")
 }
@@ -104,15 +105,3 @@ stat_save <- merge(stat_saveT, stat_saveEC, by = "loc", all.x = TRUE)
 ###### Writing File ##########
 readr::write_csv(stat_save, file = file.path("outputs", "02_wind_river_ECtemp_monthstat.csv"))
 
-############## Plotting statistics ###################
-#not paper quality figures, just to look at the data 
-ggplot(stat_plot, aes(x=datetime_int , y= value)) +
-  geom_point(aes(color= factor(type)))+
-  scale_colour_brewer(palette = "Paired")+
-  ylab(expression(paste("Daily Average Temp"))) + 
-  theme_cust()
-
-ggplot(all_temp, aes(x=as.POSIXct(Datetime) , y= Temp.dnsfk)) +
-  geom_point()+
-  ylab(expression(paste("Daily Average Temp"))) + 
-  theme_cust()

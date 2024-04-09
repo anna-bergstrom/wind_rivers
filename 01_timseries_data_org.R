@@ -86,15 +86,15 @@ readr::write_csv(all_wind, file = file.path("outputs", "01_full_wind_river_EC_TE
   
   all_Sm <- all_wind %>%
     select(Datetime,starts_with("Sm"))
-  readr::write_csv(all_EC, file = file.path("outputs", "01_full_wind_river_Smoothed_timeseries.csv"))
+  readr::write_csv(all_Sm, file = file.path("outputs", "01_full_wind_river_Smoothed_timeseries.csv"))
   
 
   
 
   
-  ggplot(dinwood6) +
-    geom_point(aes(x = Datetime, y= EC.din6), alpha = 0.25)+
-    geom_line(aes(x = Datetime, y= Sm.din6), col = 'blue')+
+  ggplot(all_Sm) +
+    #geom_point(aes(x = Datetime, y= EC.din5), alpha = 0.25)+
+    geom_line(aes(x = Datetime, y= Sm.din5), col = 'blue')+
     ylab(expression(paste("Temp"))) + 
     theme_cust()
   
