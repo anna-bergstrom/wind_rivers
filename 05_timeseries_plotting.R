@@ -1,5 +1,5 @@
 ## 05_timeseries_plotting
-# This will load the time series data sets plot the timeseies. 
+# This will load the time series data sets plot the timeseries. 
 
 rm(list = ls())
 

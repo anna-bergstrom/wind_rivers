@@ -5,7 +5,6 @@ rm(list = ls())
 source("paths+packages.R")
 
 
-
 ##### Load data #########
 clear <- read.csv('R_import_data/Clear.csv') %>% 
   mutate(Datetime = mdy_hm(Datetime, tz = 'America/Denver'))

@@ -62,9 +62,7 @@ return(data)
 }
 
 EC_sub_scaled <- scaling(EC_subset[,-1])
-#EC_range_sub_scaled <- scaling(EC_range_subset[,-1])
 Temp_sub_scaled <- scaling(Temp_subset[,-1])
-#Temp_range_sub_scaled <- scaling(Temp_range_subset[,-1])
 means_stats_scaled <- scaling(means_stats)
 range_stats_scaled <- scaling(range_stats)
 
@@ -82,35 +80,51 @@ return(glm_table)
 }
 
 # applying function for each 
-EC_mean_glm <- table_setup(EC_sub_scaled)
-EC_range_glm <- table_setup(EC_sub_scaled)
+#EC_mean_glm <- table_setup(EC_sub_scaled)
+EC_mean_glm <- table_setup(EC_subset[,-1])
+#EC_range_glm <- table_setup(EC_sub_scaled)
+EC_range_glm <- table_setup(EC_subset[,-1])
 
-Temp_mean_glm <- table_setup(Temp_sub_scaled)
-Temp_range_glm <- table_setup(Temp_sub_scaled)
+#Temp_mean_glm <- table_setup(Temp_sub_scaled)
+Temp_mean_glm <- table_setup(Temp_subset[,-1])
+#Temp_range_glm <- table_setup(Temp_sub_scaled)
+Temp_range_glm <- table_setup(Temp_subset[,-1])
 
+stat_table<- EC_mean_glm
+subset_spat<-EC_subset
 param <- "mean_EC"
-subset_spat <- EC_sub_scaled
-stat_table <- EC_mean_glm
+j<-1
+
 # function to calculate the GLM  
 glm_apply <- function(stat_table, subset_spat,  param){
 stats_sub <-  select(all_wind,contains(!!param)) 
 for(j in 1:(length(stats_sub))){
-temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),],stats_sub[!is.na(stats_sub[,j]),j]), IC = "BIC")
+temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),-1],stats_sub[!is.na(stats_sub[,j]),j]), IC = "BIC")
 print(temp)
 params <- as.data.frame(temp$BestModel$coefficients)
 params$param<-rownames(params)
 colnames(params)<-c('val','param')
 stat_table<- merge(stat_table,params, by = 'param', all.x = TRUE)
+glm_sub <- select(subset_spat, contains(!!params[2:length(params[,2]),2]))
+glm_sub <- glm_sub[!is.na(stats_sub[,j]),]
+stat_diag <- stats_sub[!is.na(stats_sub[,j]),j]
+plot_data <- cbind(stat_diag,glm_sub)
+preds <- colnames(glm_sub)
+back<- paste0(preds,collapse = "+")
+glm_form <- paste0("stat_diag ~", back, collapse = "")
+print(glm(as.formula(glm_form), data  = plot_data))
+ print(plot(glm(as.formula(glm_form), data  = plot_data))) 
 }
 colnames(stat_table)<-c('param', 'Jun', 'Jul', 'Aug', 'Sep')
 return(stat_table)
+
 }
 
-EC_mean_glm <- glm_apply(EC_mean_glm, EC_sub_scaled, "mean_EC")
-EC_range_glm <- glm_apply(EC_range_glm, EC_sub_scaled, "range_EC")
+EC_mean_glm <- glm_apply(EC_mean_glm, EC_subset[,-1], "mean_EC")
+EC_range_glm <- glm_apply(EC_range_glm, EC_subset[,-1], "range_EC")
 
-Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_sub_scaled, "mean_Temp")
-Temp_range_glm <- glm_apply(Temp_range_glm, Temp_sub_scaled, "range_Temp")
+Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_subset[,-1], "mean_Temp")
+Temp_range_glm <- glm_apply(Temp_range_glm, Temp_subset[,-1], "range_Temp")
 
 
 readr::write_csv(as.data.frame(EC_mean_glm), file = file.path("outputs", "04_wind_river_EC_mean_glm.csv"),na = "")
@@ -118,6 +132,9 @@ readr::write_csv(as.data.frame(EC_range_glm), file = file.path("outputs", "04_wi
 
 readr::write_csv(as.data.frame(Temp_mean_glm), file = file.path("outputs", "04_wind_river_Temp_mean_glm.csv"),na = "")
 readr::write_csv(as.data.frame(Temp_range_glm), file = file.path("outputs", "04_wind_river_Temp_range_glm.csv"),na = "")
+
+
+
 
 ######## Calculating a series of Spearman rank correlations and making a table ##########
 spear_table <- matrix(data=NA,nrow=length(LC_stat)-1,ncol=3)
@@ -135,18 +152,18 @@ range_cor_table <- colnames(LC_stat[2:length(LC_stat)])
 mean_cor_table <- colnames(LC_stat[2:length(LC_stat)])
 
 
-for (j in 1:length(range_scaled)){
-  temp <- spear(LC_scaled, range_scaled[,j])
-  ind <- temp[,3]>0.1
-  temp[ind,2:3] <-NA
-  range_cor_table <- cbind(range_cor_table,temp[,2:3])
+#for (j in 1:length(range_scaled)){
+#  temp <- spear(LC_scaled, range_scaled[,j])
+ # ind <- temp[,3]>0.1
+ # temp[ind,2:3] <-NA
+ # range_cor_table <- cbind(range_cor_table,temp[,2:3])
   
   
-  temp <- spear(LC_scaled, means_scaled[,j])
-  ind <- temp[,3]>0.05
-  temp[ind,2:3] <-NA
-  mean_cor_table <- cbind(mean_cor_table,temp[,2:3])
-}
+#  temp <- spear(LC_scaled, means_scaled[,j])
+#  ind <- temp[,3]>0.05
+#  temp[ind,2:3] <-NA
+#  mean_cor_table <- cbind(mean_cor_table,temp[,2:3])
+#}
 
 readr::write_csv(as.data.frame(range_cor_table), file = file.path("outputs", "04_wind_river_range_cor_table.csv"),na = "")
 readr::write_csv(as.data.frame(mean_cor_table), file = file.path("outputs", "04_wind_river_mean_cor_table.csv"),na = "")
