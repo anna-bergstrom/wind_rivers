@@ -66,14 +66,14 @@ ggplot(temp_flip, aes(Datetime, value, colour = variable)) +
  # Plot with all temperature time series in the same plot 
  ggplot(sm_flip, aes(Datetime, value, colour = variable)) +
    geom_line() +
-   ylab(bquote('Temp (\u00B0C)'))+
+   ylab(expression(paste("EC (" ,  mu,  "S cm"^"-1", ")"))) + 
    scale_color_manual(values=ec_ramp)+
    theme_cust()
  
  #faceted plot with temperature time series in individual panels 
  ggplot(sm_flip, aes(Datetime, value, colour = variable)) +
    geom_line() +
-   ylab(bquote('Temp (\u00B0C)'))+
+   ylab(expression(paste("EC (" ,  mu,  "S cm"^"-1", ")"))) + 
    xlab("")+
    scale_color_manual(values=ec_ramp)+
    facet_wrap(~factor(variable, levels = c("Sm.dnsfk", "Sm.kndk", "Sm.din7",  "Sm.din6", "Sm.din5",  "Sm.din4", "Sm.din2", "Sm.din1", "Sm.gan2" )))+
