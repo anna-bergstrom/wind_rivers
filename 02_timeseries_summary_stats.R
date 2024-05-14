@@ -47,8 +47,8 @@ summary_stats <- function(dataset,interval) {
 }
 
 # Line to run the function for a given parameter and interval 
-stat_dataEC <- summary_stats(all_ec, 'month')
-stat_dataT <- summary_stats(all_temp, 'month')
+stat_dataEC <- summary_stats(all_ec, 'week')
+stat_dataT <- summary_stats(all_temp, 'week')
 
 ########## Organizing stats to export for statistical modeling ###############
 stats <- c("mean", "max", "min", "range")

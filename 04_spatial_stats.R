@@ -69,6 +69,9 @@ range_stats_scaled <- scaling(range_stats)
 ########## testing for the best general linear model ########## 
 #see McManus et al., 2020 Freshwater Science https://doi.org/10.1086/710340
 
+
+# try running a single model and include variable for month to see how variable these might be through time and to better compare within the model 
+
 # function for setting up table for output
 table_setup <- function(input){
 glm_table <- as.data.frame(colnames(input))
@@ -90,10 +93,10 @@ Temp_mean_glm <- table_setup(Temp_subset[,-1])
 #Temp_range_glm <- table_setup(Temp_sub_scaled)
 Temp_range_glm <- table_setup(Temp_subset[,-1])
 
-stat_table<- EC_mean_glm
-subset_spat<-EC_subset
-param <- "mean_EC"
-j<-1
+stat_table<- Temp_range_glm
+subset_spat<-Temp_subset
+param <- "range_Temp"
+j<-3
 
 # function to calculate the GLM  
 glm_apply <- function(stat_table, subset_spat,  param){
@@ -106,14 +109,16 @@ params$param<-rownames(params)
 colnames(params)<-c('val','param')
 stat_table<- merge(stat_table,params, by = 'param', all.x = TRUE)
 glm_sub <- select(subset_spat, contains(!!params[2:length(params[,2]),2]))
-glm_sub <- glm_sub[!is.na(stats_sub[,j]),]
+glm_sub2 <- as.data.frame(glm_sub[!is.na(stats_sub[,j]),])
+colnames(glm_sub2) <- colnames(glm_sub)
 stat_diag <- stats_sub[!is.na(stats_sub[,j]),j]
-plot_data <- cbind(stat_diag,glm_sub)
-preds <- colnames(glm_sub)
+plot_data <- cbind(stat_diag,glm_sub2)
+preds <- colnames(glm_sub2)
 back<- paste0(preds,collapse = "+")
 glm_form <- paste0("stat_diag ~", back, collapse = "")
 print(glm(as.formula(glm_form), data  = plot_data))
  print(plot(glm(as.formula(glm_form), data  = plot_data))) 
+ 
 }
 colnames(stat_table)<-c('param', 'Jun', 'Jul', 'Aug', 'Sep')
 return(stat_table)
