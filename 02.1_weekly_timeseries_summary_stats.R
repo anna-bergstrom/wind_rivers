@@ -89,7 +89,7 @@ stat_saveairT <- stat_saveairT %>%
   stat_saveEC <- pivot_longer(stat_dataEC[[stat]],cols = 2:ncol(stat_dataEC[[stat]]),names_to = "names") 
   colnames(stat_saveEC)[3] <- "mean_EC"
   
-  stat <- 2 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
+  stat <- 4 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
   temp<- pivot_longer(stat_dataEC[[stat]],cols = 2:ncol(stat_dataEC[[stat]]),names_to = "names") 
   colnames(temp)[3] <- "range_EC"
   
@@ -106,7 +106,7 @@ stat <- 1 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: ran
 stat_saveT <- pivot_longer(stat_dataT[[stat]],cols = 2:ncol(stat_dataT[[stat]]),names_to = "names") 
 colnames(stat_saveT)[3] <- "mean_temp"
 
-stat <- 2 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
+stat <- 4 #variable to select with stat to plot, 1: mean, 2: max, 3: min, 4: range
 temp<- pivot_longer(stat_dataT[[stat]],cols = 2:ncol(stat_dataT[[stat]]),names_to = "names") 
 colnames(temp)[3] <- "range_temp"
 
@@ -131,4 +131,14 @@ stat_saveBoth<- stat_saveBoth[complete.cases(stat_saveBoth[ , 3:4]),]
 ###### Writing File ##########
 readr::write_csv(stat_saveBoth, file = file.path("outputs", "02.1_wind_river_weeklystats.csv"))
 
+ggplot(stat_saveBoth) +
+  geom_point(aes(x = datetime_int, y= range_temp, colour = factor(site)), alpha = 0.25)+
+  #geom_line(aes(x = Datetime, y= Sm.din5), col = 'blue')+
+  ylab(expression(paste("temp"))) + 
+  theme_cust()
 
+ggplot(stat_saveBoth) +
+  geom_point(aes(x = mean_AirT, y= mean_temp, colour = factor(site)))+
+  #geom_line(aes(x = Datetime, y= Sm.din5), col = 'blue')+
+  ylab(expression(paste("temp"))) + 
+  theme_cust()

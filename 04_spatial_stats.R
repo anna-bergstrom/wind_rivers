@@ -16,8 +16,10 @@ LC_stat <- LC_stat[order(LC_stat$site),]
 means_stats <- select(all_wind,contains("mean"))
 range_stats <- select(all_wind,contains("range"))
 # Combining means and ranges  and spatial data and calculating a correlation matrix 
-all_cor <- cor(cbind(LC_stat[,-1],means_stats, range_stats), use="complete.obs", method = "spearman")
-corrplot(all_cor,  type = 'lower', diag = FALSE)
+all_cor <- cor(cbind(LC_stat[,-1],means_stats, range_stats), use="complete.obs")
+cor.p <- cor.mtest(cbind(LC_stat[,-1],means_stats, range_stats),use="complete.obs")
+corrplot.mixed(all_cor)
+corrplot(all_cor, p.mat = cor.p$p, sig.level = 0.10, type = 'lower', diag = FALSE)
 
 
 ########### Determining highly correlated spatial variables ##########
@@ -102,7 +104,7 @@ j<-3
 glm_apply <- function(stat_table, subset_spat,  param){
 stats_sub <-  select(all_wind,contains(!!param)) 
 for(j in 1:(length(stats_sub))){
-temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),-1],stats_sub[!is.na(stats_sub[,j]),j]), IC = "BIC")
+temp <- bestglm(cbind(subset_spat[!is.na(stats_sub[,j]),-1],stats_sub[!is.na(stats_sub[,j]),j]), family = gaussian, IC = "BIC")
 print(temp)
 params <- as.data.frame(temp$BestModel$coefficients)
 params$param<-rownames(params)
@@ -125,11 +127,11 @@ return(stat_table)
 
 }
 
-EC_mean_glm <- glm_apply(EC_mean_glm, EC_subset[,-1], "mean_EC")
-EC_range_glm <- glm_apply(EC_range_glm, EC_subset[,-1], "range_EC")
+#EC_mean_glm <- glm_apply(EC_mean_glm, EC_subset[,-1], "mean_EC")
+#EC_range_glm <- glm_apply(EC_range_glm, EC_subset[,-1], "range_EC")
 
-Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_subset[,-1], "mean_Temp")
-Temp_range_glm <- glm_apply(Temp_range_glm, Temp_subset[,-1], "range_Temp")
+#Temp_mean_glm <- glm_apply(Temp_mean_glm, Temp_subset[,-1], "mean_Temp")
+#Temp_range_glm <- glm_apply(Temp_range_glm, Temp_subset[,-1], "range_Temp")
 
 
 readr::write_csv(as.data.frame(EC_mean_glm), file = file.path("outputs", "04_wind_river_EC_mean_glm.csv"),na = "")

@@ -18,6 +18,7 @@ library(bestglm)
 library(plyr)
 library(imputeTS)
 library(dataRetrieval)
+library(scales)
 
 ## GGplot theme
 theme_cust <- function(base_size = 16, base_family = "") {

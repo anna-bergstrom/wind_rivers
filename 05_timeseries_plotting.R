@@ -9,11 +9,13 @@ source("paths+packages.R")
 all_temp <- read.csv('outputs/01_full_wind_river_TEMP_timeseries.csv')
 all_ec <- read.csv('outputs/01_full_wind_river_EC_timeseries.csv')
 ec_sm <-  read.csv('outputs/01_full_wind_river_Smoothed_timeseries.csv')
+air_temp <- read.csv('R_import_data/AirT_logger.csv')
 
 
 all_temp$Datetime <- strptime(all_temp$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
 all_ec$Datetime <- strptime(all_ec$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
 ec_sm$Datetime <- strptime(ec_sm$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
+air_temp$Datetime <-as.POSIXct(air_temp$Datetime, "%m/%d/%Y %H:%M", tz = 'America/Denver')
 
 # Renaming columns so they display better in the legend
 colnames(all_temp) <- c("Datetime","double lake", "dinwoody 1", "dinwoody 2", "dinwoody 4", "dinwoody 5", "dinwoody 6", "dinwoody 7", "klondike","downs fork", "ganett 2","grass 3", "clear", "grass")
@@ -38,10 +40,20 @@ all_temp$Datetime <- as.POSIXct(all_temp$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UT
 ec_sub$Datetime <- as.POSIXct(ec_sub$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
 ec_sm$Datetime <- as.POSIXct(ec_sm$Datetime, "%Y-%m-%dT%H:%M:%S", tz = 'UTC')
 
+
 # Reorganizing data for facted plot
 temp_flip <- melt(all_temp,id="Datetime",variable_name="site")
 ec_flip <- melt(ec_sub,id="Datetime",variable_name="site")
 sm_flip <- melt(ec_sm,id="Datetime",variable_name="site")
+
+#Plot air temperature
+ggplot(data= air_temp, aes(x= as.POSIXct(Datetime), y = airT_C, group=1))+
+  geom_line(colour = "#6495ED")+
+  geom_hline(yintercept= 0, linetype = "dashed")+
+  ylab(bquote('Air Temperature (\u00B0C)'))+
+  xlab("")+
+  scale_x_datetime(breaks = breaks_pretty(10))+
+  theme_cust()
 
 # Plot with all temperature time series in the same plot 
 ggplot(temp_flip, aes(Datetime, value, colour = variable)) +
